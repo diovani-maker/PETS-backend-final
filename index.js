@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
     res.send("Hello from Node API Server for Pets");
 });
 
-mongoose.connect("mongodb+srv://diovani_db_user_pets:2nUBxW0REAjFqyyZ@backenddb.r67je0z.mongodb.net/?retryWrites=true&w=majority&appName=BackendDB")
+mongoose.connect("mongodb+srv://ALTERAR")
     .then(() => {
         console.log("Connected to MongoDB Atlas!");
         app.listen(3000, () => {
@@ -24,3 +24,4 @@ mongoose.connect("mongodb+srv://diovani_db_user_pets:2nUBxW0REAjFqyyZ@backenddb.
     .catch((err) => {
         console.error("Connection to MongoDB failed!", err);
     });
+
