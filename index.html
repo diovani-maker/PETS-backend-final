@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        input {
+            margin: 5px 0;
+            padding: 8px;
+            width: 200px;
+            box-sizing: border-box; /* Garantir que o padding não quebre o layout */
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        #petsList {
+            margin-top: 20px;
+        }
+
+        .pet-item {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .pet-id {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .pet-details {
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+
+        .pet-details h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .pet-details p {
+            margin: 2px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .pet-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Estilo para os campos editáveis */
+        .edit-input {
+            width: 200px;
+            padding: 8px;
+            margin: 3px 0;
+            box-sizing: border-box; /* Impede que o padding quebre o layout */
+        }
+
+        /* Alinhar rótulos e campos de forma consistente */
+        .edit-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .edit-fields label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        /* Botões de edição e exclusão */
+        .edit-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Formatação adicional para o botão "Save" */
+        .edit-buttons button {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pet Management</h1>
+
+    <!--Formulário criar-->
+    <h2>Create Pet</h2>
+    <form id="createPetForm">
+        <input type="text" id="name" placeholder="Pet Name" required /><br>
+        <input type="text" id="species" placeholder="Species" required /><br>
+        <input type="text" id="breed" placeholder="Breed" /><br>
+        <input type="number" id="age" placeholder="Age" required /><br>
+        <input type="text" id="owner" placeholder="Owner Name" required /><br>
+        <button type="submit">Create Pet</button>
+    </form>
+
+    <!--List of pets -->
+    <h2>Pets List</h2>
+    <div id="petsList"></div>
+
+    <!--Buscar owner por pet -->
+    <h2>Get Owner by Pet</h2>
+    <input type="text" id="petName" placeholder="Pet Name" />
+    <button onclick="getOwnerByPet()">Get Owner</button>
+    <p id="ownerInfo"></p>
+
+    <!--Buscar pets por owner -->
+    <h2>Get Pets by Owner</h2>
+    <input type="text" id="ownerName" placeholder="Owner Name" />
+    <button onclick="getPetsByOwner()">Get Pets</button>
+    <p id="petsByOwnerInfo"></p>
+
+    <script>
+        // Criar um pet
+        document.getElementById("createPetForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const petData = {
+                name: document.getElementById("name").value,
+                species: document.getElementById("species").value,
+                breed: document.getElementById("breed").value,
+                age: document.getElementById("age").value,
+                owner: document.getElementById("owner").value
+            };
+
+            const response = await fetch('http://localhost:3000/api/pets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(petData)
+            });
+
+            if (response.ok) {
+                alert('Pet created!');
+                loadPets(); // Atualiza a lista
+            }
+        });
+
+        // Carregar pets
+        async function loadPets() {
+            const response = await fetch('http://localhost:3000/api/pets');
+            const pets = await response.json();
+            const petsList = document.getElementById("petsList");
+            petsList.innerHTML = pets.map((pet, index) => `
+                <div class="pet-item" id="pet-${pet._id}">
+                    <div class="pet-id">${String(index + 1).padStart(3, '0')}</div> <!-- ID com máscara -->
+                    <div class="pet-details">
+                        <h3>${pet.name}</h3>
+                        <p>Species: <span class="pet-species">${pet.species}</span></p>
+                        <p>Breed: <span class="pet-breed">${pet.breed || 'N/A'}</span></p>
+                        <p>Age: <span class="pet-age">${pet.age}</span></p>
+                        <p>Owner: <span class="pet-owner">${pet.owner}</span></p>
+                    </div>
+                    <div class="edit-buttons">
+                        <button onclick="editPet('${pet._id}')">Edit</button>
+                        <button onclick="deletePet('${pet._id}')">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Editar pet diretamente na lista
+        function editPet(petId) {
+            const petItem = document.getElementById(`pet-${petId}`);
+            const petDetails = petItem.querySelector('.pet-details');
+            
+            // Transformar os campos em inputs editáveis
+            petDetails.innerHTML = `
+                <div class="edit-fields">
+                    <label for="edit-name-${petId}">Nome:</label>
+                    <input type="text" value="${petDetails.querySelector('h3').textContent}" class="edit-input" id="edit-name-${petId}"><br>
+
+                    <label for="edit-species-${petId}">Species:</label>
+                    <input type="text" value="${petDetails.querySelector('.pet-species').textContent}" class="edit-input" id="edit-species-${petId}"><br>
+
+                    <label for="edit-breed-${petId}">Breed:</label>
+                    <input type="text" value="${petDetails.querySelector('.pet-breed').textContent}" class="edit-input" id="edit-breed-${petId}"><br>
+
+                    <label for="edit-age-${petId}">Age:</label>
+                    <input type="number" value="${petDetails.querySelector('.pet-age').textContent}" class="edit-input" id="edit-age-${petId}"><br>
+
+                    <label for="edit-owner-${petId}">Owner:</label>
+                    <input type="text" value="${petDetails.querySelector('.pet-owner').textContent}" class="edit-input" id="edit-owner-${petId}"><br>
+                </div>
+            `;
+
+            // Substituir o botão de Editar por um de Salvar
+            const editButton = petItem.querySelector('.edit-buttons button:first-child');
+            editButton.innerHTML = "Save";
+            editButton.setAttribute("onclick", `savePet('${petId}')`);
+        }
+
+        // Salvar alterações do pet
+        async function savePet(petId) {
+            const petItem = document.getElementById(`pet-${petId}`);
+            const petDetails = petItem.querySelector('.pet-details');
+
+            const updatedPet = {
+                name: document.getElementById(`edit-name-${petId}`).value,
+                species: document.getElementById(`edit-species-${petId}`).value,
+                breed: document.getElementById(`edit-breed-${petId}`).value,
+                age: document.getElementById(`edit-age-${petId}`).value,
+                owner: document.getElementById(`edit-owner-${petId}`).value
+            };
+
+            const response = await fetch(`http://localhost:3000/api/pets/${petId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedPet)
+            });
+
+            if (response.ok) {
+                alert('Pet updated!');
+                loadPets(); // Atualiza a lista
+            }
+        }
+
+        // Excluir pet
+        async function deletePet(petId) {
+            const response = await fetch(`http://localhost:3000/api/pets/${petId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert('Pet deleted!');
+                loadPets(); // Atualiza a lista
+            }
+        }
+
+        // Filtro owner por pet
+        async function getOwnerByPet() {
+            const petName = document.getElementById("petName").value;
+            const response = await fetch(`http://localhost:3000/api/pets/owner/${petName}`);
+            const data = await response.json();
+            document.getElementById("ownerInfo").innerText = data.message || `Owner: ${data.owner}`;
+        }
+
+        // Filtro pets por owner
+        async function getPetsByOwner() {
+            const ownerName = document.getElementById("ownerName").value;
+            const response = await fetch(`http://localhost:3000/api/pets/owner/${ownerName}/pets`);
+            const data = await response.json();
+            if (data.message) {
+                document.getElementById("petsByOwnerInfo").innerText = data.message;
+            } else {
+                document.getElementById("petsByOwnerInfo").innerText = `Owner: ${data.owner} has ${data.numberOfPets} pets.`;
+                const petsList = data.pets.map(pet => `<p>${pet.name}</p>`).join('');
+                document.getElementById("petsByOwnerInfo").innerHTML += `<div>${petsList}</div>`;
+            }
+        }
+
+        // Carregar pets na inicialização
+        loadPets();
+    </script>
+</body>
+</html>

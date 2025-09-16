@@ -1,0 +1,15 @@
+node_modules/
+.env
+*.log
+index.html
+controllers
+pet.controllers.js
+node_modules
+pet.models.js
+routes
+pet.routes.js
+.gitignore
+index.js
+package-lock.json
+package.json
+
